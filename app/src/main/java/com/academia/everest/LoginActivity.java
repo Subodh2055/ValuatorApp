@@ -41,30 +41,22 @@ public class LoginActivity extends AppCompatActivity {
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // Get the values of param1 and param2 from your EditText fields
                 String requestedId = "6810631f-0bca-4e87-aad1-326945824d4d-1694669918997";
                 String token = "471632";
 
-                // Assuming you have already defined the ApiService interface
                 ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
 
-                // Make the POST request
-                Map<String,String>  map = new HashMap<>();
-                map.put("token",token);
-                map.put("requestId",requestedId);
+                Map<String, String> map = new HashMap<>();
+                map.put("token", token);
+                map.put("requestId", requestedId);
                 Call<ApiResponse> call = apiService.postData(map);
-                Log.d("CallObject", call.toString());
+
                 call.enqueue(new Callback<ApiResponse>() {
                     @Override
                     public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                         if (response.isSuccessful()) {
-                            // POST request was successful, handle the response data here
                             ApiResponse responseData = response.body();
 
-                            // You can process responseData as needed
-                            // For example, if the response contains user authentication data,
-                            // you can proceed to the next activity or perform other actions.
-                            // Replace "NextActivity.class" with the actual activity you want to start.
                             Intent intent = new Intent(LoginActivity.this, DetailActivity.class);
                             startActivity(intent);
 
@@ -82,7 +74,7 @@ public class LoginActivity extends AppCompatActivity {
                     }
                 });
                 Intent intent = new Intent(LoginActivity.this, DetailActivity.class);
-                // Create a JSON object with actual values
+
                 JSONObject jsonObject = new JSONObject();
                 try {
                     jsonObject.put("requestedDate", "2023-09-14 11:23:39.107");
@@ -95,13 +87,13 @@ public class LoginActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                // Convert the JSON object to a string
+
                 String jsonData = jsonObject.toString();
 
-                // Pass the JSON data as an extra
                 intent.putExtra("jsonData", jsonData);
 
-                startActivity(intent);            }
+                startActivity(intent);
+            }
         });
     }
 }

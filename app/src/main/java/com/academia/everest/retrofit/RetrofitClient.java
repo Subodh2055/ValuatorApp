@@ -6,7 +6,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitClient {
-    private static final String BASE_URL = "http://103.94.159.179:9019/ebl/"; // Use 10.0.2.2 for localhost in the Android Emulator
+    private static final String BASE_URL = "http://103.94.159.179:9019/ebl/";
 
     private static Retrofit retrofit = null;
 
