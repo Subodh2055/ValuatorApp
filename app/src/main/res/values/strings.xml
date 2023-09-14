@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Everest</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="login">Login</string>
+    <string name="token">Token</string>
+    <string name="requestid">RequestId</string>
+    <string name="branch_name">Branch Name:</string>
+    <string name="contact_number">Contact Number:</string>
+    <string name="contact_person">Contact Person:</string>
+    <string name="collateral_type">Collateral Type:</string>
+    <string name="collateral_owner_name">Collateral Owner Name:</string>
+    <string name="collateralAddress">Collateral Address:</string>
+    <string name="remarks">Remarks:</string>
+    <string name="file_upload">File Upload</string>
+    <string name="remarks_hint">Enter remarks here</string>
+    <string name="remarks_label_required">Remarks: <font color="#FF0000">*</font></string>
+</resources>
