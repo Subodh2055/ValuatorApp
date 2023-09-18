@@ -18,5 +18,6 @@
     <string name="file_upload">File Upload</string>
     <string name="remarks_hint">Enter remarks here</string>
     <string name="remarks_label_required">Remarks: <font color="#FF0000">*</font></string>
+    <string name="save">Save</string>
 
 </resources>
