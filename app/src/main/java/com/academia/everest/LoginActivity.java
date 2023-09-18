@@ -34,15 +34,15 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-//        requestIdEditText = findViewById(R.id.requestIdEditText);
-//        tokenEditText = findViewById(R.id.tokenEditText);
+        requestIdEditText = findViewById(R.id.requestIdEditText);
+        tokenEditText = findViewById(R.id.tokenEditText);
         loginButton = findViewById(R.id.loginButton);
 
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String requestedId = "6810631f-0bca-4e87-aad1-326945824d4d-1694669918997";
-                String token = "471632";
+                String requestedId = requestIdEditText.getText().toString().trim();
+                String token = tokenEditText.getText().toString().trim();
 
                 ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
 
@@ -58,6 +58,26 @@ public class LoginActivity extends AppCompatActivity {
                             ApiResponse responseData = response.body();
 
                             Intent intent = new Intent(LoginActivity.this, DetailActivity.class);
+                            JSONObject jsonObject = new JSONObject();
+                            try {
+                                if( responseData != null) {
+                                    jsonObject.put("requestedDate", responseData.getRequestedDate());
+                                    jsonObject.put("branchName", responseData.getBranchName());
+                                    jsonObject.put("contactPersonName", responseData.getContactPersonName());
+                                    jsonObject.put("contactNumber", responseData.getContactNumber());
+                                    jsonObject.put("collateralType", responseData.getCollateralType());
+                                    jsonObject.put("collateralOwnerName", responseData.getCollateralOwnerName());
+                                    jsonObject.put("collateralAddress", responseData.getCollateralAddress());
+                                } else {
+                                    Toast.makeText(LoginActivity.this, "Response Data: " + response.message(), Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+
+                            String jsonData = jsonObject.toString();
+
+                            intent.putExtra("jsonData", jsonData);
                             startActivity(intent);
 
                         } else {
@@ -73,26 +93,26 @@ public class LoginActivity extends AppCompatActivity {
                         Toast.makeText(LoginActivity.this, "Network Error", Toast.LENGTH_SHORT).show();
                     }
                 });
-                Intent intent = new Intent(LoginActivity.this, DetailActivity.class);
-
-                JSONObject jsonObject = new JSONObject();
-                try {
-                    jsonObject.put("requestedDate", "2023-09-14 11:23:39.107");
-                    jsonObject.put("branchName", "Koteshwor");
-                    jsonObject.put("contactPersonName", "contact person name");
-                    jsonObject.put("contactNumber", "9988998876");
-                    jsonObject.put("collateralType", "Land Security");
-                    jsonObject.put("collateralOwnerName", "owner Name");
-                    jsonObject.put("collateralAddress", "add, Aamchok, Bhojpur, Province 1");
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                String jsonData = jsonObject.toString();
-
-                intent.putExtra("jsonData", jsonData);
-
-                startActivity(intent);
+//                Intent intent = new Intent(LoginActivity.this, DetailActivity.class);
+//
+//                JSONObject jsonObject = new JSONObject();
+//                try {
+//                    jsonObject.put("requestedDate", "2023-09-14 11:23:39.107");
+//                    jsonObject.put("branchName", "Koteshwor");
+//                    jsonObject.put("contactPersonName", "contact person name");
+//                    jsonObject.put("contactNumber", "9988998876");
+//                    jsonObject.put("collateralType", "Land Security");
+//                    jsonObject.put("collateralOwnerName", "owner Name");
+//                    jsonObject.put("collateralAddress", "add, Aamchok, Bhojpur, Province 1");
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                String jsonData = jsonObject.toString();
+//
+//                intent.putExtra("jsonData", jsonData);
+//
+//                startActivity(intent);
             }
         });
     }
