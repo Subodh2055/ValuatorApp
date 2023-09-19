@@ -16,6 +16,7 @@ import com.academia.everest.retrofit.RetrofitClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,8 +42,9 @@ public class LoginActivity extends AppCompatActivity {
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String requestedId = requestIdEditText.getText().toString().trim();
-                String token = tokenEditText.getText().toString().trim();
+
+                String requestedId = requestIdEditText.getText().toString().replaceAll("\\s+", "");
+                String token = tokenEditText.getText().toString().replaceAll("\\s+", "");
 
                 ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
 
@@ -52,15 +54,18 @@ public class LoginActivity extends AppCompatActivity {
                 Call<ApiResponse> call = apiService.postData(map);
 
                 call.enqueue(new Callback<ApiResponse>() {
+
                     @Override
                     public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                        int statusCode = response.code();
+                        Log.d("API Response", "Status Code: " + statusCode);
                         if (response.isSuccessful()) {
                             ApiResponse responseData = response.body();
 
                             Intent intent = new Intent(LoginActivity.this, DetailActivity.class);
                             JSONObject jsonObject = new JSONObject();
                             try {
-                                if( responseData != null) {
+                                if (responseData != null) {
                                     jsonObject.put("requestedDate", responseData.getRequestedDate());
                                     jsonObject.put("branchName", responseData.getBranchName());
                                     jsonObject.put("contactPersonName", responseData.getContactPersonName());
@@ -81,8 +86,17 @@ public class LoginActivity extends AppCompatActivity {
                             startActivity(intent);
 
                         } else {
-                            // Handle the error
-                            Toast.makeText(LoginActivity.this, "API Error: " + response.message(), Toast.LENGTH_SHORT).show();
+                            String errorMessage = "Unknown Error";
+                            try {
+                                assert response.errorBody() != null;
+                                JSONObject errorObject = new JSONObject(response.errorBody().string());
+                                errorMessage = errorObject.optString("message", errorMessage);
+
+                            } catch (IOException | JSONException e) {
+                                e.printStackTrace();
+                            }
+                            Log.e("API Response", "Error Body: " + errorMessage);
+                            Toast.makeText(LoginActivity.this, "API Error: " + errorMessage, Toast.LENGTH_SHORT).show();
                         }
                     }
 
@@ -93,26 +107,6 @@ public class LoginActivity extends AppCompatActivity {
                         Toast.makeText(LoginActivity.this, "Network Error", Toast.LENGTH_SHORT).show();
                     }
                 });
-//                Intent intent = new Intent(LoginActivity.this, DetailActivity.class);
-//
-//                JSONObject jsonObject = new JSONObject();
-//                try {
-//                    jsonObject.put("requestedDate", "2023-09-14 11:23:39.107");
-//                    jsonObject.put("branchName", "Koteshwor");
-//                    jsonObject.put("contactPersonName", "contact person name");
-//                    jsonObject.put("contactNumber", "9988998876");
-//                    jsonObject.put("collateralType", "Land Security");
-//                    jsonObject.put("collateralOwnerName", "owner Name");
-//                    jsonObject.put("collateralAddress", "add, Aamchok, Bhojpur, Province 1");
-//                } catch (JSONException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                String jsonData = jsonObject.toString();
-//
-//                intent.putExtra("jsonData", jsonData);
-//
-//                startActivity(intent);
             }
         });
     }
