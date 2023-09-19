@@ -1,36 +1,41 @@
 package com.academia.everest;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.webkit.MimeTypeMap;
-import android.widget.ImageView;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.academia.everest.retrofit.ApiClient;
 import com.academia.everest.retrofit.ApiService;
+import com.academia.everest.retrofit.RetrofitClient;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Objects;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -44,13 +49,15 @@ public class DetailActivity extends AppCompatActivity {
     private static final int FILE_PICKER_REQUEST_CODE = 1998;
     private Uri selectedFileUri;
     String jsonData;
+    String requestId;
+
 
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
-
+        requestId = getIntent().getStringExtra("requestId");
         jsonData = getIntent().getStringExtra("jsonData");
         Log.d("DetailActivity", "jsonData: " + jsonData);
 
@@ -87,7 +94,7 @@ public class DetailActivity extends AppCompatActivity {
                 contactNumberTextView.setText(contactNumber);
                 collateralTypeTextView.setText(collateralType);
                 collateralOwnerNameTextView.setText(collateralOwnerName);
-                collateralAddressTextView.setText( collateralAddress);
+                collateralAddressTextView.setText(collateralAddress);
             } else {
                 Toast.makeText(this, "Error: Invalid JSON data", Toast.LENGTH_SHORT).show();
                 finish();
@@ -96,7 +103,9 @@ public class DetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Error: jsonData is null", Toast.LENGTH_SHORT).show();
             finish();
         }
-
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, FILE_PICKER_REQUEST_CODE);
+        }
 //        TextView selectedFileNameTextView = findViewById(R.id.selectedFileNameTextView);
 //        selectedFileNameTextView.setOnClickListener(new View.OnClickListener() {
 //            @Override
@@ -110,80 +119,6 @@ public class DetailActivity extends AppCompatActivity {
         Toast.makeText(this, "Error: Invalid JSON data", Toast.LENGTH_SHORT).show();
         finish();
     }
-
-    private String getFileExtension(Uri uri) {
-        ContentResolver contentResolver = getContentResolver();
-        MimeTypeMap mimeTypeMap = MimeTypeMap.getSingleton();
-        return mimeTypeMap.getExtensionFromMimeType(contentResolver.getType(uri));
-    }
-
-    private void handleSelectedFileTextViewClick() {
-        if (selectedFileUri != null) {
-            String fileExtension = getFileExtension(selectedFileUri);
-            Log.d("SelectedFileUri", selectedFileUri.toString());
-
-            if (fileExtension != null && !fileExtension.isEmpty()) {
-
-                if (fileExtension.equals("txt")) {
-                    // Handle text file
-                    handleTextFile(selectedFileUri);
-                } else if (isImageFile(fileExtension)) {
-                    // Handle image file
-                    handleImageFile(selectedFileUri);
-                } else if (fileExtension.equals("pdf")) {
-                    // Handle PDF file
-                    handlePdfFile(selectedFileUri);
-                } else {
-                    // Handle other file types
-                    handleOtherFileTypes(selectedFileUri);
-                }
-            }
-        } else {
-            Toast.makeText(this, "Error: Invalid file extension", Toast.LENGTH_SHORT).show();
-
-        }
-    }
-
-    private boolean isImageFile(String fileExtension) {
-        return fileExtension != null && (fileExtension.equals("jpg") || fileExtension.equals("jpeg") || fileExtension.equals("png"));
-    }
-
-    private void handleTextFile(Uri fileUri) {
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(fileUri);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            StringBuilder content = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                content.append(line).append("\n");
-            }
-            Toast.makeText(this, "Text File Content:\n" + content, Toast.LENGTH_LONG).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void handleImageFile(Uri fileUri) {
-        ImageView imageView = findViewById(R.id.imageView);
-        imageView.setImageURI(fileUri);
-        imageView.setVisibility(View.VISIBLE);
-    }
-
-    private void handlePdfFile(Uri fileUri) {
-        Intent pdfIntent = new Intent(Intent.ACTION_VIEW);
-        pdfIntent.setDataAndType(fileUri, "application/pdf");
-        pdfIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        try {
-            startActivity(pdfIntent);
-        } catch (ActivityNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void handleOtherFileTypes(Uri fileUri) {
-        Toast.makeText(this, "Unsupported File Type", Toast.LENGTH_SHORT).show();
-    }
-
 
     public void onUploadButtonClick(View view) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
@@ -205,117 +140,162 @@ public class DetailActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == RESULT_OK) {
-            selectedFileUri = data.getData();
-            String selectedFileName = getFileName(selectedFileUri);
-            Uri fileUri = selectedFileUri;
-            String filePath = getRealPathFromUri(fileUri);
-            TextView selectedFileNameTextView = findViewById(R.id.selectedFileNameTextView);
-            selectedFileNameTextView.setText("Selected File: " + selectedFileName);
-            selectedFileNameTextView.setVisibility(View.VISIBLE); // Make it visible
+            if (data != null && data.getData() != null) {
+                selectedFileUri = data.getData();
+                String selectedFileName = getFileNameFromUri(selectedFileUri);
+                Uri fileUri = selectedFileUri;
+                String filePath = getRealPathFromUri(fileUri);
+                TextView selectedFileNameTextView = findViewById(R.id.selectedFileNameTextView);
+                selectedFileNameTextView.setText("Selected File: " + selectedFileName);
+                selectedFileNameTextView.setVisibility(View.VISIBLE);
 
-            String fileExtension = MimeTypeMap.getFileExtensionFromUrl(selectedFileUri.toString());
-
-            if (fileExtension != null && fileExtension.equals("txt")) {
-                try {
-                    InputStream inputStream = getContentResolver().openInputStream(selectedFileUri);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-                    StringBuilder content = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        content.append(line).append("\n");
-                    }
-                    TextView fileContentTextView = findViewById(R.id.fileContentTextView);
-                    fileContentTextView.setText(content.toString());
-                    fileContentTextView.setVisibility(View.VISIBLE);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             } else {
-                if (fileExtension != null && (fileExtension.equals("jpg") || fileExtension.equals("jpeg") || fileExtension.equals("png"))) {
-                    ImageView imageView = findViewById(R.id.imageView);
-                    imageView.setImageURI(selectedFileUri);
-                    imageView.setVisibility(View.VISIBLE);
-                } else if (fileExtension != null && fileExtension.equals("pdf")) {
-                    // Example for opening PDF files using an Intent:
-                    Intent pdfIntent = new Intent(Intent.ACTION_VIEW);
-                    pdfIntent.setDataAndType(selectedFileUri, "application/pdf");
-                    pdfIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    try {
-                        startActivity(pdfIntent);
-                    } catch (ActivityNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    // For other file types, you can implement handling as needed
-                }
+                // Handle the case where the URI is null
+                Toast.makeText(this, "No file selected", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-
     // Utility method to get the file name from a URI
-    private String getFileName(Uri uri) {
-        String result = null;
+    private MultipartBody.Part getMultipartFromUri(Uri uri) {
+        String mimeType = getContentResolver().getType(uri); // Get the MIME type of the file
+        String displayName = null;
+
+        // Retrieve the file name based on the URI scheme
         if (uri.getScheme().equals("content")) {
-            String[] projection = {android.provider.MediaStore.Images.ImageColumns.DISPLAY_NAME};
-            try (android.database.Cursor cursor = getContentResolver().query(uri, projection, null, null, null)) {
+            String[] projection = {MediaStore.Images.ImageColumns.DISPLAY_NAME};
+            try (Cursor cursor = getContentResolver().query(uri, projection, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
-                    int index = cursor.getColumnIndex(android.provider.MediaStore.Images.ImageColumns.DISPLAY_NAME);
-                    result = cursor.getString(index);
+                    int index = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DISPLAY_NAME);
+                    displayName = cursor.getString(index);
                 }
             }
         } else if (uri.getScheme().equals("file")) {
-            result = new File(uri.getPath()).getName();
+            displayName = new File(uri.getPath()).getName();
         }
-        return result;
+
+        // Check if displayName is not null, as this indicates success in getting the file name
+        if (displayName != null) {
+            // Create a RequestBody for the file
+            RequestBody requestBody = null;
+            try {
+                requestBody = RequestBody.create(MediaType.parse(mimeType), String.valueOf(getContentResolver().openInputStream(uri)));
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            // Create a MultipartBody.Part with a name for the part
+            return MultipartBody.Part.createFormData("file", displayName, Objects.requireNonNull(requestBody));
+        } else {
+            // Handle the case where the file name cannot be determined
+            return null;
+        }
     }
+
 
     private String getRealPathFromUri(Uri uri) {
         String[] projection = {MediaStore.Images.Media.DATA};
         Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
         if (cursor != null) {
-            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            String filePath = cursor.getString(column_index);
-            cursor.close();
-            return filePath;
+            try {
+                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                if (cursor.moveToFirst()) {
+                    String filePath = cursor.getString(column_index);
+                    if (filePath != null) {
+                        cursor.close();
+                        return filePath;
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
         }
         return uri.getPath();
     }
 
-    public void onSaveButtonClick(View view) {
-        String requestedId = "6810631f-0bca-4e87-aad1-326945824d4d-1694669918997";
-        String token = "471632";
-        String remarks = "gedddd";
-        String filePath = getRealPathFromUri(selectedFileUri);
-        Map<String, String> hashMap = new HashMap<>();
-        hashMap.put("token", token);
-        hashMap.put("requestId", requestedId);
-        hashMap.put("remarks", remarks);
+    public void verifyButtonClick(View view) {
 
-        File file = new File(filePath);
+        EditText remarksEditText = findViewById(R.id.remarksEditText);
+        String remarks = remarksEditText.getText().toString();
+        if (selectedFileUri != null) {
+            showVerificationPopup(selectedFileUri, remarks);
+        } else {
+            // Handle the case where no file has been selected
+            Toast.makeText(this, "Please select a file", Toast.LENGTH_SHORT).show();
+        }
+    }
 
-        RequestBody requestFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-        MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), requestFile);
+    private void showVerificationPopup(Uri selectedFileUri, String remarks) {
 
-        ApiService apiService = ApiClient.getClient().create(ApiService.class);
+        View dialogView = getLayoutInflater().inflate(R.layout.custom_popup_layout, null);
 
-        Call<ResponseBody> call = apiService.uploadValuationFile(filePart, token, requestedId, remarks);
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        dialogBuilder.setView(dialogView);
+
+        EditText tokenEditText = dialogView.findViewById(R.id.tokenEditText1);
+        Button submitButton = dialogView.findViewById(R.id.submitButton);
+
+        AlertDialog alertDialog = dialogBuilder.create();
+
+        submitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String token = tokenEditText.getText().toString();
+
+                performApiRequest(token, remarks, getMultipartFromUri(selectedFileUri), requestId);
+
+                alertDialog.dismiss();
+            }
+        });
+        alertDialog.show();
+    }
+
+
+    private void performApiRequest(String token, String remarks, MultipartBody.Part filePath, String reqId) {
+
+        ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
+
+        Call<ResponseBody> call = apiService.uploadValuationFile(filePath, token, remarks, reqId);
 
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if (response.isSuccessful()) {
-                    // Handle success
+                    Log.d("Success", "Response: " + response.code());
+                    // Handle the successful response from the API here
                 } else {
-                    // Handle failure
+                    String errorMessage = "Unknown Error";
+                    try {
+                        assert response.errorBody() != null;
+                        JSONObject errorObject = new JSONObject(response.errorBody().string());
+                        errorMessage = errorObject.optString("message", errorMessage);
+                    } catch (IOException | JSONException e) {
+                        e.printStackTrace();
+                    }
+                    Log.e("API Response", "Error Body: " + errorMessage);
+                    Toast.makeText(DetailActivity.this, "API Error: " + errorMessage, Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                // Handle network errors
+                t.printStackTrace();
+                Toast.makeText(DetailActivity.this, "Unable to Submit!", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private String getFileNameFromUri(Uri uri) {
+        String displayName = null;
+        ContentResolver contentResolver = getContentResolver();
+        Cursor cursor = contentResolver.query(uri, null, null, null, null);
+
+        if (cursor != null && cursor.moveToFirst()) {
+            int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+            displayName = cursor.getString(nameIndex);
+            cursor.close();
+        }
+
+        return displayName;
     }
 }

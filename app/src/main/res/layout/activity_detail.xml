@@ -313,7 +313,7 @@
             android:layout_marginBottom="16dp"
             android:layout_marginEnd="16dp"
             android:background="#c3242c"
-            android:onClick="onSaveButtonClick"
+            android:onClick="verifyButtonClick"
             android:text="@string/save"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

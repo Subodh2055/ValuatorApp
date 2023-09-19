@@ -17,11 +17,11 @@ public interface ApiService {
     Call<ApiResponse> postData(@Body Map<String, String> map);
 
     @Multipart
-    @POST("/v1/pub/valuation/upload")
+    @POST("http://103.94.159.179:9019/ebl/api/upload-file")
     Call<ResponseBody> uploadValuationFile(
             @Part MultipartBody.Part file,
             @Query("token") String token,
-            @Query("requestId") String requestId,
-            @Query("remarks") String remarks
+            @Query("remarks") String remarks,
+            @Query("reqId") String reqId
     );
 }
