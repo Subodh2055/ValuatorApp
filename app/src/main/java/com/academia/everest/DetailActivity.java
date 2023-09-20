@@ -256,6 +256,7 @@ public class DetailActivity extends AppCompatActivity {
                 if (Objects.equals(tokenFromLogin, token)) {
                     performApiRequest(token, remarks, getMultipartFromUri(selectedFileUri), requestId);
                     alertDialog.dismiss();
+//                    finishAffinity();
                 } else {
                     Toast.makeText(v.getContext(), "Token Did Not Matched!", Toast.LENGTH_SHORT).show();
                 }
