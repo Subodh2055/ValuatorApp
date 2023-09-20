@@ -84,6 +84,7 @@ public class LoginActivity extends AppCompatActivity {
 
                             intent.putExtra("jsonData", jsonData);
                             intent.putExtra("requestId", requestedId);
+                            intent.putExtra("token", token);
                             startActivity(intent);
 
                         } else {

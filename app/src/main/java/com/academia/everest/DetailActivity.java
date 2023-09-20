@@ -50,6 +50,7 @@ public class DetailActivity extends AppCompatActivity {
     private Uri selectedFileUri;
     String jsonData;
     String requestId;
+    String tokenFromLogin;
 
 
     @SuppressLint("SetTextI18n")
@@ -58,6 +59,7 @@ public class DetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
         requestId = getIntent().getStringExtra("requestId");
+        tokenFromLogin = getIntent().getStringExtra("token");
         jsonData = getIntent().getStringExtra("jsonData");
         Log.d("DetailActivity", "jsonData: " + jsonData);
 
@@ -251,10 +253,12 @@ public class DetailActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String token = tokenEditText.getText().toString();
-
-                performApiRequest(token, remarks, getMultipartFromUri(selectedFileUri), requestId);
-
-                alertDialog.dismiss();
+                if (Objects.equals(tokenFromLogin, token)) {
+                    performApiRequest(token, remarks, getMultipartFromUri(selectedFileUri), requestId);
+                    alertDialog.dismiss();
+                } else {
+                    Toast.makeText(v.getContext(), "Token Did Not Matched!", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         alertDialog.show();
