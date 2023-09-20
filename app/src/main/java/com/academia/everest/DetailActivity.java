@@ -262,6 +262,7 @@ public class DetailActivity extends AppCompatActivity {
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if (response.isSuccessful()) {
                     Log.d("Success", "Response: " + response.code());
+                    Toast.makeText(DetailActivity.this, "Successfully Submitted!", Toast.LENGTH_SHORT).show();
                     // Handle the successful response from the API here
                 } else {
                     String errorMessage = "Unknown Error";
