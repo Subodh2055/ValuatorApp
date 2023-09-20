@@ -23,11 +23,11 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/idIVLogo"
         android:layout_margin="16dp"
-        android:hint="@string/requestid"
         android:backgroundTint="@android:color/white"
-        android:textColor="@android:color/white"
+        android:hint="@string/requestid"
+        android:inputType="text"
         android:padding="8dp"
-        android:inputType="text" />
+        android:textColor="@android:color/white" />
 
     <EditText
         android:id="@+id/tokenEditText"
@@ -51,8 +51,18 @@
         android:layout_below="@id/tokenEditText"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="16dp"
+        android:backgroundTint="#C66647"
         android:text="@string/login"
-        android:textColor="@android:color/white"
-        android:backgroundTint="#C66647" />
+        android:textColor="@android:color/white" />
+
+    <TextView
+        android:id="@+id/companyInfoTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp"
+        android:text="@string/developed_by_sb_solutions_nepal_pvt_ltd"
+        android:textColor="@android:color/white" />
 
 </RelativeLayout>
