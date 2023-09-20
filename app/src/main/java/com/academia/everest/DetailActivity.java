@@ -234,8 +234,18 @@ public class DetailActivity extends AppCompatActivity {
 
         EditText tokenEditText = dialogView.findViewById(R.id.tokenEditText1);
         Button submitButton = dialogView.findViewById(R.id.submitButton);
+        Button cancelButton = dialogView.findViewById(R.id.cancelButton);
 
         AlertDialog alertDialog = dialogBuilder.create();
+
+        alertDialog.setCancelable(false);
+
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                alertDialog.dismiss();
+            }
+        });
 
         submitButton.setOnClickListener(new View.OnClickListener() {
             @Override
