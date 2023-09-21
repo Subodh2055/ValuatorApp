@@ -1,16 +1,23 @@
 package com.academia.everest;
 
+import static android.os.Environment.getExternalStorageDirectory;
+
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -33,7 +40,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -62,6 +72,10 @@ public class DetailActivity extends AppCompatActivity {
         tokenFromLogin = getIntent().getStringExtra("token");
         jsonData = getIntent().getStringExtra("jsonData");
         Log.d("DetailActivity", "jsonData: " + jsonData);
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, FILE_PICKER_REQUEST_CODE);
+        }
 
         if (jsonData != null && !jsonData.isEmpty()) {
 
@@ -105,16 +119,6 @@ public class DetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Error: jsonData is null", Toast.LENGTH_SHORT).show();
             finish();
         }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, FILE_PICKER_REQUEST_CODE);
-        }
-//        TextView selectedFileNameTextView = findViewById(R.id.selectedFileNameTextView);
-//        selectedFileNameTextView.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                handleSelectedFileTextViewClick();
-//            }
-//        });
     }
 
     private void showJsonParsingError() {
@@ -123,18 +127,35 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     public void onUploadButtonClick(View view) {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");  // Allow any file type
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, FILE_PICKER_REQUEST_CODE);
+        } else {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("*/*");  // Allow any file type
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
 
-        try {
-            startActivityForResult(
-                    Intent.createChooser(intent, "Select a File"),
-                    FILE_PICKER_REQUEST_CODE);
-        } catch (ActivityNotFoundException ex) {
-            Toast.makeText(this, "File picker not found. Please install a file picker app.", Toast.LENGTH_SHORT).show();
+            try {
+                startActivityForResult(
+                        Intent.createChooser(intent, "Select a File"),
+                        FILE_PICKER_REQUEST_CODE);
+            } catch (ActivityNotFoundException ex) {
+                Toast.makeText(this, "File picker not found. Please install a file picker app.", Toast.LENGTH_SHORT).show();
+            }
         }
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == FILE_PICKER_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permission granted, proceed with file selection
+                onUploadButtonClick(null); // Calxl the file selection logic here
+            } else {
+                Toast.makeText(this, "Permission denied. Cannot select a file.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -145,25 +166,21 @@ public class DetailActivity extends AppCompatActivity {
             if (data != null && data.getData() != null) {
                 selectedFileUri = data.getData();
                 String selectedFileName = getFileNameFromUri(selectedFileUri);
-                Uri fileUri = selectedFileUri;
-                String filePath = getRealPathFromUri(fileUri);
                 TextView selectedFileNameTextView = findViewById(R.id.selectedFileNameTextView);
                 selectedFileNameTextView.setText("Selected File: " + selectedFileName);
                 selectedFileNameTextView.setVisibility(View.VISIBLE);
-
             } else {
-                // Handle the case where the URI is null
                 Toast.makeText(this, "No file selected", Toast.LENGTH_SHORT).show();
             }
         }
+
     }
 
-    // Utility method to get the file name from a URI
+
     private MultipartBody.Part getMultipartFromUri(Uri uri) {
         String mimeType = getContentResolver().getType(uri); // Get the MIME type of the file
         String displayName = null;
 
-        // Retrieve the file name based on the URI scheme
         if (uri.getScheme().equals("content")) {
             String[] projection = {MediaStore.Images.ImageColumns.DISPLAY_NAME};
             try (Cursor cursor = getContentResolver().query(uri, projection, null, null, null)) {
@@ -176,9 +193,7 @@ public class DetailActivity extends AppCompatActivity {
             displayName = new File(uri.getPath()).getName();
         }
 
-        // Check if displayName is not null, as this indicates success in getting the file name
         if (displayName != null) {
-            // Create a RequestBody for the file
             RequestBody requestBody = null;
             try {
                 requestBody = RequestBody.create(MediaType.parse(mimeType), String.valueOf(getContentResolver().openInputStream(uri)));
@@ -186,37 +201,64 @@ public class DetailActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
 
-            // Create a MultipartBody.Part with a name for the part
             return MultipartBody.Part.createFormData("file", displayName, Objects.requireNonNull(requestBody));
         } else {
-            // Handle the case where the file name cannot be determined
             return null;
         }
     }
 
+    private String getFileNameFromUri(Uri uri) {
+        String displayName = null;
+        ContentResolver contentResolver = getContentResolver();
+        Cursor cursor = contentResolver.query(uri, null, null, null, null);
 
-    private String getRealPathFromUri(Uri uri) {
-        String[] projection = {MediaStore.Images.Media.DATA};
-        Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
-        if (cursor != null) {
-            try {
-                int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-                if (cursor.moveToFirst()) {
-                    String filePath = cursor.getString(column_index);
-                    if (filePath != null) {
-                        cursor.close();
-                        return filePath;
-                    }
-                }
-            } finally {
-                cursor.close();
-            }
+        if (cursor != null && cursor.moveToFirst()) {
+            int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+            displayName = cursor.getString(nameIndex);
+            cursor.close();
         }
-        return uri.getPath();
+
+        return displayName;
+    }
+
+    private String getFilePathFromUri(Uri uri) {
+        if (DocumentsContract.isDocumentUri(this, uri)) {
+            String docId = DocumentsContract.getDocumentId(uri);
+            if (uri.toString().startsWith("content://com.android.providers.downloads.documents")) {
+                Uri contentUri = ContentUris.withAppendedId(Uri.parse("content://downloads/public_downloads"), Long.parseLong(docId));
+                return getDataColumn(contentUri, null, null);
+            } else if (uri.toString().startsWith("content://com.android.externalstorage.documents")) {
+                String[] split = docId.split(":");
+                String type = split[0];
+                if ("primary".equalsIgnoreCase(type)) {
+                    return getExternalStorageDirectory() + "/" + split[1];
+                }
+            }
+        } else if ("file".equalsIgnoreCase(uri.getScheme())) {
+            return uri.getPath();
+        }
+        return null;
+    }
+
+    private String getDataColumn(Uri uri, String selection, String[] selectionArgs) {
+        Cursor cursor = null;
+        final String column = "_data";
+        final String[] projection = {column};
+
+        try {
+            cursor = getContentResolver().query(uri, projection, selection, selectionArgs, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                final int column_index = cursor.getColumnIndexOrThrow(column);
+                return cursor.getString(column_index);
+            }
+        } finally {
+            if (cursor != null)
+                cursor.close();
+        }
+        return null;
     }
 
     public void verifyButtonClick(View view) {
-
         EditText remarksEditText = findViewById(R.id.remarksEditText);
         String remarks = remarksEditText.getText().toString();
         if (selectedFileUri != null) {
@@ -254,7 +296,7 @@ public class DetailActivity extends AppCompatActivity {
             public void onClick(View v) {
                 String token = tokenEditText.getText().toString();
                 if (Objects.equals(tokenFromLogin, token)) {
-                    performApiRequest(token, remarks, getMultipartFromUri(selectedFileUri), requestId);
+                    performApiRequest(token, remarks, selectedFileUri, requestId);
                     alertDialog.dismiss();
 //                    finishAffinity();
                 } else {
@@ -265,12 +307,73 @@ public class DetailActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
+    private String getRealPathFromUri(Uri uri) {
+        if ("content".equalsIgnoreCase(uri.getScheme()) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            try {
+                ParcelFileDescriptor parcelFileDescriptor = getContentResolver().openFileDescriptor(uri, "r");
+                if (parcelFileDescriptor != null) {
+                    FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+                    FileInputStream inputStream = new FileInputStream(fileDescriptor);
+                    File file = new File(getCacheDir(), "temp_file");
+                    FileOutputStream outputStream = new FileOutputStream(file);
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = inputStream.read(buffer)) > 0) {
+                        outputStream.write(buffer, 0, length);
+                    }
+                    outputStream.close();
+                    inputStream.close();
+                    parcelFileDescriptor.close();
+                    return file.getAbsolutePath();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        } else {
+            String[] projection = {MediaStore.MediaColumns.DATA};
+            Cursor cursor = getContentResolver().query(uri, projection, null, null, null);
 
-    private void performApiRequest(String token, String remarks, MultipartBody.Part filePath, String reqId) {
+            if (cursor != null) {
+                int column_index = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA);
+                cursor.moveToFirst();
+                String filePath = cursor.getString(column_index);
+                cursor.close();
+                return filePath;
+            } else {
+                return uri.getPath();
+            }
+        }
+    }
 
+    private void performApiRequest(String token, String remarks, Uri fileUri, String reqId) {
         ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
 
-        Call<ResponseBody> call = apiService.uploadValuationFile(filePath, token, remarks, reqId);
+        String filePath = getRealPathFromUri(fileUri);
+        if (filePath == null) {
+            Toast.makeText(this, "Selected file does not exist", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        File file = new File(filePath);
+        if (!file.exists()) {
+            Toast.makeText(this, "Selected file does not exist", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        RequestBody fileRequestBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+
+        MultipartBody.Part filePart = MultipartBody.Part.createFormData("file", file.getName(), fileRequestBody);
+
+        RequestBody tokenRequestBody = RequestBody.create(MediaType.parse("text/plain"), token);
+        RequestBody remarksRequestBody = RequestBody.create(MediaType.parse("text/plain"), remarks);
+        RequestBody reqIdRequestBody = RequestBody.create(MediaType.parse("text/plain"), reqId);
+
+        Call<ResponseBody> call = apiService.uploadValuationFile(
+                filePart,
+                tokenRequestBody,
+                remarksRequestBody,
+                reqIdRequestBody
+        );
 
         call.enqueue(new Callback<ResponseBody>() {
             @Override
@@ -299,19 +402,6 @@ public class DetailActivity extends AppCompatActivity {
                 Toast.makeText(DetailActivity.this, "Unable to Submit!", Toast.LENGTH_SHORT).show();
             }
         });
-    }
 
-    private String getFileNameFromUri(Uri uri) {
-        String displayName = null;
-        ContentResolver contentResolver = getContentResolver();
-        Cursor cursor = contentResolver.query(uri, null, null, null, null);
-
-        if (cursor != null && cursor.moveToFirst()) {
-            int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-            displayName = cursor.getString(nameIndex);
-            cursor.close();
-        }
-
-        return displayName;
     }
 }
