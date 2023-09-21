@@ -11,6 +11,10 @@ import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Part;
 
+/**
+ * @author Subodh Bhandari on 9/21/2023
+ */
+
 public interface ApiService {
 
     @POST("http://103.94.159.179:9019/ebl/api/verify")

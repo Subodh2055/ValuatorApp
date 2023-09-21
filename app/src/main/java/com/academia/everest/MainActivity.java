@@ -6,6 +6,11 @@ import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.view.WindowManager;
 
+/**
+ * @author Subodh Bhandari on 9/21/2023
+ */
+
+
 public class MainActivity extends AppCompatActivity {
 
     private static final int SPLASH_DELAY = 2000; // 2 seconds
