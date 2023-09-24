@@ -60,6 +60,9 @@ import retrofit2.Response;
  */
 
 public class DetailActivity extends AppCompatActivity {
+
+    ApiService apiService = RetrofitClient.getClient();
+
     private static final int FILE_PICKER_REQUEST_CODE = 1998;
     private Uri selectedFileUri;
     String jsonData;
@@ -351,7 +354,6 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     private void performApiRequest(String token, String remarks, Uri fileUri, String reqId) {
-        ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
 
         String filePath = getRealPathFromUri(fileUri);
         if (filePath == null) {

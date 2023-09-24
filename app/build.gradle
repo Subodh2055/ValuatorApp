@@ -46,6 +46,7 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.9.1'
     implementation 'com.google.code.gson:gson:2.8.8'
     implementation 'org.projectlombok:lombok:1.18.22' // Use the latest version
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.9.1'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'

@@ -17,11 +17,11 @@ import retrofit2.http.Part;
 
 public interface ApiService {
 
-    @POST("http://103.94.159.179:9019/ebl/api/verify")
+    @POST("api/verify")
     Call<ApiResponse> postData(@Body Map<String, String> map);
 
     @Multipart
-    @POST("http://103.94.159.179:9019/ebl/api/upload-file")
+    @POST("api/upload-file")
     Call<ResponseBody> uploadValuationFile(
             @Part MultipartBody.Part file,
             @Part("token") RequestBody token,

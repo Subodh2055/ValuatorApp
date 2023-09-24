@@ -30,6 +30,8 @@ import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
 
+    ApiService apiService = RetrofitClient.getClient();
+
     private EditText requestIdEditText;
     private EditText tokenEditText;
     private Button loginButton;
@@ -49,8 +51,6 @@ public class LoginActivity extends AppCompatActivity {
 
                 String requestedId = requestIdEditText.getText().toString().replaceAll("\\s+", "");
                 String token = tokenEditText.getText().toString().replaceAll("\\s+", "");
-
-                ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
 
                 Map<String, String> map = new HashMap<>();
                 map.put("token", token);
