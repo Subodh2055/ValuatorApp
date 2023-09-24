@@ -383,9 +383,7 @@ public class DetailActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
                 if (response.isSuccessful()) {
-                    Log.d("Success", "Response: " + response.code());
-                    Toast.makeText(DetailActivity.this, "Successfully Submitted!", Toast.LENGTH_SHORT).show();
-                    // Handle the successful response from the API here
+                    showSuccessDialog();
                 } else {
                     String errorMessage = "Unknown Error";
                     try {
@@ -406,6 +404,25 @@ public class DetailActivity extends AppCompatActivity {
                 Toast.makeText(DetailActivity.this, "Unable to Submit!", Toast.LENGTH_SHORT).show();
             }
         });
-
     }
+
+    private void showSuccessDialog() {
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        dialogBuilder.setMessage("Upload successful!");
+        dialogBuilder.setPositiveButton("OK", (dialog, which) -> {
+            dialog.dismiss();
+            redirectToLoginActivity();
+        });
+
+        AlertDialog alertDialog = dialogBuilder.create();
+        alertDialog.setCancelable(false);
+        alertDialog.show();
+    }
+
+    private void redirectToLoginActivity() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
 }
